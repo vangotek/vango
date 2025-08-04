@@ -1,0 +1,19 @@
+title = "VanGo SSG"
+baseURL = "http://localhost:1313/"
+
+	configFile := "config.toml"
+	cfgData, err := ioutil.ReadFile(configFile)
+	if err != nil {
+		panic(fmt.Errorf("failed to read config.toml: %w", err))
+	}
+
+	cfgTree, err := toml.Load(string(cfgData))
+	if err != nil {
+		panic(fmt.Errorf("failed to parse config.toml: %w", err))
+	}
+
+	site := Site{
+		Title:   cfgTree.Get("title").(string),
+		BaseURL: cfgTree.Get("baseURL").(string),
+	}
+

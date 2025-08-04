@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>{{ .Page.Title }}</title>
+    <link rel="stylesheet" href="{{ $.Site.BaseURL }}static/style.css">
+</head>
+
+<body>
+    <h1>{{ .Page.Title }}</h1>
+    <p><em>{{ .Page.Date }}</em></p>
+    <div>{{ .Page.Content }}</div>
+    <footer>
+        <small>{{ index .Page.Params "description" }}</small>
+    </footer>
+</body>
+
+</html>
