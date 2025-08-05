@@ -1,150 +1,81 @@
 package main
 
 import (
-	"bytes"
 	"flag"
 	"fmt"
-	"html/template"
-	"io"
-	"io/ioutil"
-	"log"
 	"os"
-	"path/filepath"
-	"strings"
 
-	"github.com/pelletier/go-toml"
-	"github.com/yuin/goldmark"
+	"vango/internal/builder"
+	"vango/internal/config"
+	"vango/internal/server"
 )
 
-type Site struct {
-	Title   string
-	BaseURL string
-}
-
-type Page struct {
-	Title   string
-	Date    string
-	Content template.HTML
-	Params  map[string]interface{}
-}
-
-type TemplateData struct {
-	Site Site
-	Page Page
-}
-
 func main() {
-
-	mode := flag.String("mode", "build", "Mode: build or serve")
+	var (
+		mode       = flag.String("mode", "build", "Operation mode: build or serve")
+		configPath = flag.String("config", "config.toml", "Path to configuration file")
+		port       = flag.Int("port", 1313, "Port for development server")
+		help       = flag.Bool("help", false, "Show help information")
+	)
 	flag.Parse()
+
+	if *help {
+		printHelp()
+		return
+	}
+
+	// Load configuration
+	cfg, err := config.Load(*configPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error loading config: %v\n", err)
+		os.Exit(1)
+	}
 
 	switch *mode {
 	case "build":
-		buildSite()
+		if err := buildSite(cfg); err != nil {
+			fmt.Fprintf(os.Stderr, "Build failed: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println("Site built successfully!")
+
 	case "serve":
-		serveSite()
+		if err := serveSite(cfg, *port); err != nil {
+			fmt.Fprintf(os.Stderr, "Server failed: %v\n", err)
+			os.Exit(1)
+		}
+
 	default:
-		log.Fatal("Unknown mode:", *mode)
+		fmt.Fprintf(os.Stderr, "Unknown mode: %s\n", *mode)
+		fmt.Fprintf(os.Stderr, "Use 'build' or 'serve'\n")
+		os.Exit(1)
 	}
-
-	site := Site{Title: "My Hugo Clone", BaseURL: "http://localhost:1313/"}
-	contentDir := "content"
-	layoutPath := "layouts/_default/single.html"
-	publicDir := "public"
-	staticDir := "static"
-
-	tpl := template.Must(template.ParseFiles(layoutPath))
-	os.RemoveAll(publicDir)
-	os.MkdirAll(publicDir, 0755)
-
-	// Copy static assets
-	copyStaticFiles(staticDir, filepath.Join(publicDir, "static"))
-
-	// Walk content
-	filepath.Walk(contentDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil || info.IsDir() || !strings.HasSuffix(path, ".md") {
-			return nil
-		}
-
-		data, err := ioutil.ReadFile(path)
-		if err != nil {
-			return err
-		}
-
-		content := string(data)
-		var frontMatter, body string
-
-		if strings.HasPrefix(content, "+++") {
-			parts := strings.SplitN(content, "+++", 3)
-			if len(parts) == 3 {
-				frontMatter = parts[1]
-				body = parts[2]
-			}
-		}
-
-		tree, err := toml.Load(frontMatter)
-		if err != nil {
-			return err
-		}
-
-		title := tree.Get("title").(string)
-		date := tree.Get("date").(string)
-		params := tree.ToMap()
-
-		var buf bytes.Buffer
-		if err := goldmark.Convert([]byte(body), &buf); err != nil {
-			return err
-		}
-
-		html := buf.String()
-
-		page := Page{
-			Title:   title,
-			Date:    date,
-			Content: template.HTML(html),
-			Params:  params,
-		}
-
-		templateData := TemplateData{
-			Site: site,
-			Page: page,
-		}
-
-		relPath, _ := filepath.Rel(contentDir, path)
-		outDir := filepath.Join(publicDir, strings.TrimSuffix(relPath, ".md"))
-		outputPath := filepath.Join(outDir, "index.html")
-
-		os.MkdirAll(outDir, 0755)
-		outFile, _ := os.Create(outputPath)
-		defer outFile.Close()
-
-		if err := tpl.Execute(outFile, templateData); err != nil {
-			return err
-		}
-
-		fmt.Println("Generated:", outputPath)
-		return nil
-	})
 }
 
-func copyStaticFiles(src, dest string) {
-	filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if info.IsDir() {
-			return nil
-		}
-		relPath, _ := filepath.Rel(src, path)
-		outPath := filepath.Join(dest, relPath)
-		os.MkdirAll(filepath.Dir(outPath), 0755)
+func buildSite(cfg *config.Config) error {
+	b := builder.New(cfg)
+	return b.Build()
+}
 
-		from, _ := os.Open(path)
-		defer from.Close()
-		to, _ := os.Create(outPath)
-		defer to.Close()
-		io.Copy(to, from)
+func serveSite(cfg *config.Config, port int) error {
+	s := server.New(cfg, port)
+	return s.Start()
+}
 
-		return nil
-	})
+func printHelp() {
+	fmt.Println("VanGo - A Static Site Generator")
+	fmt.Println()
+	fmt.Println("Usage:")
+	fmt.Println("  vango [flags]")
+	fmt.Println()
+	fmt.Println("Flags:")
+	fmt.Println("  -mode string     Operation mode: build or serve (default \"build\")")
+	fmt.Println("  -config string   Path to configuration file (default \"config.toml\")")
+	fmt.Println("  -port int        Port for development server (default 1313)")
+	fmt.Println("  -help            Show this help information")
+	fmt.Println()
+	fmt.Println("Examples:")
+	fmt.Println("  vango                    # Build site")
+	fmt.Println("  vango -mode serve        # Start development server")
+	fmt.Println("  vango -mode serve -port 8080  # Serve on custom port")
 }

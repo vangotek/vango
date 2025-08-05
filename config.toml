@@ -1,19 +1,27 @@
 title = "VanGo SSG"
+description = "A fast and modern static site generator built with Go"
 baseURL = "http://localhost:1313/"
+language = "en"
+author = "VanGo User"
 
-	configFile := "config.toml"
-	cfgData, err := ioutil.ReadFile(configFile)
-	if err != nil {
-		panic(fmt.Errorf("failed to read config.toml: %w", err))
-	}
+# Directory paths
+contentDir = "content"
+layoutDir = "layouts"
+staticDir = "static"
+publicDir = "public"
 
-	cfgTree, err := toml.Load(string(cfgData))
-	if err != nil {
-		panic(fmt.Errorf("failed to parse config.toml: %w", err))
-	}
+# Build settings
+buildDrafts = false
+buildFuture = false
+cleanBuild = true
 
-	site := Site{
-		Title:   cfgTree.Get("title").(string),
-		BaseURL: cfgTree.Get("baseURL").(string),
-	}
+# Server settings
+port = 1313
+host = "localhost"
+liveReload = true
 
+# Custom parameters
+[params]
+    description = "Welcome to my VanGo-powered website"
+    version = "1.0.0"
+    social = { twitter = "@username", github = "username" }

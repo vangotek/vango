@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="{{ .Site.Language }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ .Site.Title }}</title>
+    <meta name="description" content="{{ .Site.Description }}">
+    <meta name="author" content="{{ .Site.Author }}">
+    <link rel="stylesheet" href="{{ .Site.BaseURL }}static/style.css">
+    <link rel="canonical" href="{{ .Site.BaseURL }}">
+</head>
+<body class="bg-gray-100 text-gray-800 font-sans">
+    <header class="bg-white shadow-md">
+        <nav class="container mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <a href="/" class="text-2xl font-bold text-gray-800">{{ .Site.Title }}</a>
+                <ul class="flex space-x-4">
+                    <li><a href="/" class="text-gray-600 hover:text-gray-800">Home</a></li>
+                    <li><a href="/about/" class="text-gray-600 hover:text-gray-800">About</a></li>
+                </ul>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-6 py-8">
+        <div class="text-center mb-12">
+            <h1 class="text-5xl font-extrabold text-gray-900 mb-2">{{ .Site.Title }}</h1>
+            <p class="text-xl text-gray-600">{{ .Site.Description }}</p>
+        </div>
+
+        <section>
+            <h2 class="text-3xl font-bold text-gray-800 mb-6">Recent Posts</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {{ range .Pages }}
+                <article class="bg-white rounded-lg shadow-lg overflow-hidden">
+                    <div class="p-6">
+                        <h3 class="text-2xl font-bold mb-2"><a href="{{ .URL }}" class="text-gray-900 hover:text-blue-600">{{ .Title }}</a></h3>
+                        <div class="text-gray-600 text-sm mb-4">
+                            <time datetime="{{ dateFormat "2006-01-02" .ParsedDate }}">
+                                {{ humanizeDate .ParsedDate }}
+                            </time>
+                            {{ if .ReadingTime }}
+                                • {{ .ReadingTime }} min read
+                            {{ end }}
+                        </div>
+                        {{ if .Description }}
+                            <p class="text-gray-700 mb-4">{{ .Description }}</p>
+                        {{ end }}
+                        {{ if .Tags }}
+                            <div class="">
+                                {{ range .Tags }}
+                                    <span class="inline-block bg-gray-200 rounded-full px-3 py-1 text-sm font-semibold text-gray-700 mr-2">#{{ . }}</span>
+                                {{ end }}
+                            </div>
+                        {{ end }}
+                    </div>
+                </article>
+                {{ end }}
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-gray-800 text-white mt-8 py-6">
+        <div class="container mx-auto px-6 text-center">
+            <p>&copy; {{ dateFormat "2006" now }} {{ .Site.Author }}. Built with <a href="https://github.com/yourusername/vango" class="text-blue-400 hover:underline">VanGo</a>.</p>
+            {{ if .Site.Params.social }}
+            <div class="mt-4 flex justify-center space-x-4">
+                {{ if index .Site.Params.social "twitter" }}
+                    <a href="https://twitter.com/{{ index .Site.Params.social "twitter" }}" target="_blank" class="text-gray-400 hover:text-white">Twitter</a>
+                {{ end }}
+                {{ if index .Site.Params.social "github" }}
+                    <a href="https://github.com/{{ index .Site.Params.social "github" }}" target="_blank" class="text-gray-400 hover:text-white">GitHub</a>
+                {{ end }}
+            </div>
+            {{ end }}
+        </div>
+    </footer>
+</body>
+</html>
