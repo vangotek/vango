@@ -2,7 +2,7 @@ title = "VanGo SSG"
 description = "A fast and modern static site generator built with Go"
 baseURL = "http://localhost:1313/"
 language = "en"
-author = "VanGo User"
+author = "<van_go/>"
 
 # Directory paths
 contentDir = "content"
