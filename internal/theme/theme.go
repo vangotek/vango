@@ -27,6 +27,9 @@ type Theme struct {
 	LayoutsDir string `json:"layouts_dir"`
 	StaticDir  string `json:"static_dir"`
 	AssetsDir  string `json:"assets_dir"`
+	Templates map[string]string `json:"templates"`
+	
+	CSS       string `json:"css"`
 }
 
 // ThemeManager handles theme operations
@@ -35,6 +38,7 @@ type ThemeManager struct {
 	activeTheme *Theme
 	themes      map[string]*Theme
 	themesDir   string
+	defaultTheme string
 }
 
 // ThemeConfig represents theme-specific configuration
@@ -171,27 +175,59 @@ func (tm *ThemeManager) loadTheme(themePath string) (*Theme, error) {
 	return &theme, nil
 }
 
+// InstallTheme installs a theme from a remote source or local path
+func (tm *ThemeManager) InstallTheme(source string) error {
+    if source == "" {
+        return fmt.Errorf("theme source cannot be empty")
+    }
+    
+    // For now, return an error indicating the feature is not implemented
+    // You can expand this later to handle actual theme installation
+    return fmt.Errorf("theme installation from remote sources is not yet implemented. Use 'vango theme create <name>' to create a new theme or manually copy themes to the themes/ directory")
+}
+
+// Alternative: If you want a basic implementation that copies from a local directory
+func (tm *ThemeManager) InstallThemeFromPath(sourcePath, themeName string) error {
+    if sourcePath == "" || themeName == "" {
+        return fmt.Errorf("source path and theme name cannot be empty")
+    }
+    
+    // Check if source exists
+    if _, err := os.Stat(sourcePath); os.IsNotExist(err) {
+        return fmt.Errorf("source path does not exist: %s", sourcePath)
+    }
+    
+    // Check if theme already exists
+    themePath := filepath.Join(tm.themesDir, themeName)
+    if _, err := os.Stat(themePath); !os.IsNotExist(err) {
+        return fmt.Errorf("theme already exists: %s", themeName)
+    }
+    
+    // Copy the theme
+    return tm.copyDir(sourcePath, themePath)
+}
+
 // validateTheme checks if a theme has the required structure
 func (tm *ThemeManager) validateTheme(theme *Theme) error {
-	requiredDirs := []string{
-		filepath.Join(theme.Path, theme.LayoutsDir),
-	}
-	for _, dir := range requiredDirs {
-		if _, err := os.Stat(dir); os.IsNotExist(err) {
-			return fmt.Errorf("required directory missing: %s", dir)
-		}
-	}
-	// Check for required templates
-	requiredTemplates := []string{
-		filepath.Join(theme.Path, theme.LayoutsDir, "_default", "single.html"),
-		filepath.Join(theme.Path, theme.LayoutsDir, "_default", "list.html"),
-	}
-	for _, tmpl := range requiredTemplates {
-		if _, err := os.Stat(tmpl); os.IsNotExist(err) {
-			return fmt.Errorf("required template missing: %s", tmpl)
-		}
-	}
-	return nil
+    // Check required templates
+    requiredTemplates := []string{
+        "layouts/_default/single.html",
+        "layouts/_default/list.html",
+    }
+    
+    for _, template := range requiredTemplates {
+        templatePath := filepath.Join(theme.Path, template)
+        if _, err := os.Stat(templatePath); os.IsNotExist(err) {
+            return fmt.Errorf("required template missing: %s", template)
+        }
+    }
+    
+    // Validate theme.json structure
+    if theme.Name == "" {
+        return fmt.Errorf("theme name cannot be empty")
+    }
+    
+    return nil
 }
 
 // SetActiveTheme sets the currently active theme
@@ -204,6 +240,11 @@ func (tm *ThemeManager) SetActiveTheme(themeName string) error {
 	tm.config.Theme = themeName
 	return nil
 }
+
+func (tm *ThemeManager) SetDefaultTheme(name string) {
+	tm.defaultTheme = name
+}
+
 
 // GetActiveTheme returns the currently active theme
 func (tm *ThemeManager) GetActiveTheme() *Theme {

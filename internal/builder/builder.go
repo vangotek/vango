@@ -56,14 +56,20 @@ func (b *Builder) Build() error {
 
 	// Load themes and set active theme
 	if err := b.themeManager.LoadThemes(); err != nil {
-		return fmt.Errorf("failed to load themes: %w", err)
-	}
-	if b.config.Theme != "" {
-		if err := b.themeManager.SetActiveTheme(b.config.Theme); err != nil {
-			return fmt.Errorf("failed to set active theme: %w", err)
-		}
-		fmt.Printf("📦 Using theme: %s\n", b.config.Theme)
-	}
+        fmt.Printf("⚠️  Warning: Failed to load themes: %v\n", err)
+    }
+    
+    if b.config.Theme != "" {
+        if err := b.themeManager.SetActiveTheme(b.config.Theme); err != nil {
+            fmt.Printf("⚠️  Warning: Theme '%s' not found, using default theme\n", b.config.Theme)
+            b.themeManager.SetDefaultTheme("default")
+        }
+        fmt.Printf("📦 Using theme: %s\n", b.themeManager.GetActiveTheme().Name)
+    } else {
+        // No theme specified, use default
+        b.themeManager.SetDefaultTheme("default")
+        fmt.Printf("📦 Using default theme\n")
+    }
 
 	// Clean public directory if configured
 	if b.config.CleanBuild {
