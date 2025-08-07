@@ -1,0 +1,21 @@
+{
+  "name": "my-theme",
+  "version": "1.0.0",
+  "description": "A VanGo theme called my-theme",
+  "author": "Unknown",
+  "homepage": "",
+  "license": "MIT",
+  "min_vango_version": "1.0.0",
+  "tags": [
+    "simple",
+    "clean"
+  ],
+  "features": [
+    "responsive",
+    "dark-mode"
+  ],
+  "config": {},
+  "layouts_dir": "layouts",
+  "static_dir": "static",
+  "assets_dir": "assets"
+}

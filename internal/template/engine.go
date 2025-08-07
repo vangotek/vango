@@ -10,12 +10,13 @@ import (
 
 	"vango/internal/config"
 	"vango/internal/content"
+	"vango/internal/theme"
 )
 
 // Engine handles template rendering
 type Engine struct {
 	config    *config.Config
-	templates map[string]*template.Template
+	templates *template.Template // Use a single template set
 	funcMap   template.FuncMap
 }
 
@@ -28,46 +29,72 @@ type TemplateData struct {
 }
 
 // NewEngine creates a new template engine
-func NewEngine(cfg *config.Config) *Engine {
+func NewEngine(cfg *config.Config, tm *theme.ThemeManager) *Engine {
 	engine := &Engine{
 		config:    cfg,
-		templates: make(map[string]*template.Template),
+		templates: template.New("vango"), // Initialize a single root template set
 		funcMap:   createFuncMap(),
 	}
-	
+
+	// Add theme functions
+	for name, fn := range tm.GetThemeFunctions() {
+		engine.funcMap[name] = fn
+	}
+
+	engine.templates.Funcs(engine.funcMap) // Apply funcMap to the root template set
+
 	return engine
 }
 
-// LoadTemplates loads all templates from the layouts directory
-func (e *Engine) LoadTemplates() error {
-	layoutDir := e.config.LayoutDir
-	
+// LoadTemplates loads all templates from the given directory and the default layout directory
+func (e *Engine) LoadTemplates(themeLayoutDir string) error {
+	// Load templates from the default layout directory first
+	if err := e.parseAndAddTemplates(e.config.LayoutDir); err != nil {
+		return fmt.Errorf("failed to parse default templates: %w", err)
+	}
+
+	// If a theme layout directory is provided and is different, load templates from there
+	// This will override default templates with the same name
+	if themeLayoutDir != "" && themeLayoutDir != e.config.LayoutDir {
+		if err := e.parseAndAddTemplates(themeLayoutDir); err != nil {
+			return fmt.Errorf("failed to parse theme templates: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// parseAndAddTemplates walks a directory, parses HTML files, and adds them to the template set
+func (e *Engine) parseAndAddTemplates(layoutDir string) error {
 	return filepath.Walk(layoutDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-		
+
 		if info.IsDir() || !strings.HasSuffix(path, ".html") {
 			return nil
 		}
-		
-		// Get template name relative to layouts directory
+
+			// Get template name relative to layouts directory, without .html extension
 		relPath, err := filepath.Rel(layoutDir, path)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to get relative path for template %s: %w", path, err)
 		}
-		
-		templateName := strings.ReplaceAll(relPath, "\\", "/")
-		templateName = strings.TrimSuffix(templateName, ".html")
-		
-		// Parse template with function map
-		tmpl := template.New(filepath.Base(path)).Funcs(e.funcMap)
-		_, err = tmpl.ParseFiles(path)
+		templateName := strings.TrimSuffix(relPath, ".html")
+		templateName = filepath.ToSlash(templateName) // Ensure forward slashes on all platforms
+
+		// Read file content
+		content, err := os.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("failed to read template file %s: %w", path, err)
+		}
+
+		// Parse the template and add it to the main template set
+		_, err = e.templates.New(templateName).Parse(string(content))
 		if err != nil {
 			return fmt.Errorf("failed to parse template %s: %w", path, err)
 		}
-		
-		e.templates[templateName] = tmpl
+
 		return nil
 	})
 }
@@ -77,8 +104,8 @@ func (e *Engine) Render(page *content.Page, pages []*content.Page) (string, erro
 	// Determine which template to use
 	templateName := e.getTemplateName(page)
 	
-	tmpl, exists := e.templates[templateName]
-	if !exists {
+	tmpl := e.templates.Lookup(templateName) // Use Lookup on the single template set
+	if tmpl == nil {
 		return "", fmt.Errorf("template not found: %s", templateName)
 	}
 	
@@ -103,7 +130,7 @@ func (e *Engine) Render(page *content.Page, pages []*content.Page) (string, erro
 func (e *Engine) getTemplateName(page *content.Page) string {
 	// Check for page-specific template
 	if tmplName, ok := page.Params["layout"].(string); ok {
-		if _, exists := e.templates[tmplName]; exists {
+		if e.templates.Lookup(tmplName) != nil { // Use Lookup
 			return tmplName
 		}
 	}
@@ -112,7 +139,7 @@ func (e *Engine) getTemplateName(page *content.Page) string {
 	if strings.Contains(page.Slug, "/") {
 		section := strings.Split(page.Slug, "/")[0]
 		sectionTemplate := section + "/single"
-		if _, exists := e.templates[sectionTemplate]; exists {
+		if e.templates.Lookup(sectionTemplate) != nil { // Use Lookup
 			return sectionTemplate
 		}
 	}
@@ -208,15 +235,15 @@ func createFuncMap() template.FuncMap {
 
 // GetTemplate returns a template by name
 func (e *Engine) GetTemplate(name string) (*template.Template, bool) {
-	tmpl, exists := e.templates[name]
-	return tmpl, exists
+	tmpl := e.templates.Lookup(name)
+	return tmpl, tmpl != nil
 }
 
 // ListTemplates returns all available template names
 func (e *Engine) ListTemplates() []string {
-	names := make([]string, 0, len(e.templates))
-	for name := range e.templates {
-		names = append(names, name)
+	names := make([]string, 0)
+	for _, tmpl := range e.templates.Templates() {
+		names = append(names, tmpl.Name())
 	}
 	return names
 }

@@ -1,0 +1,10 @@
+{
+  "devDependencies": {
+    "tailwindcss": "^4.1.11"
+  },
+  "scripts": {
+    "start": "...",
+    "build": "...",
+    "build:css": "tailwindcss -i ./themes/modern-app/static/css/style.css -o ./public/theme/css/style.css --minify"
+  }
+}

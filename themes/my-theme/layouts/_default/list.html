@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="{{ .Site.Language }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ .Site.Title }}</title>
+    <meta name="description" content="{{ .Site.Description }}">
+    <link rel="stylesheet" href="{{ themeAsset "css/style.css" }}">
+</head>
+<body>
+    <header class="site-header">
+        <nav class="nav-container">
+            <a href="/" class="site-title">{{ .Site.Title }}</a>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/about/">About</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main class="main-content">
+        <div class="home-hero">
+            <h1 class="hero-title">{{ .Site.Title }}</h1>
+            <p class="hero-description">{{ .Site.Description }}</p>
+        </div>
+        <section class="posts-list">
+            <h2>Recent Posts</h2>
+            {{ range .Pages }}
+            <article class="post-summary">
+                <h3><a href="{{ .URL }}">{{ .Title }}</a></h3>
+                <div class="post-meta">
+                    <time datetime="{{ dateFormat "2006-01-02" .ParsedDate }}">
+                        {{ humanizeDate .ParsedDate }}
+                    </time>
+                </div>
+                <p class="post-excerpt">{{ .Summary }}</p>
+            </article>
+            {{ end }}
+        </section>
+    </main>
+    <footer class="site-footer">
+        <div class="footer-container">
+            <p>&copy; {{ dateFormat "2006" now }} {{ .Site.Author }}</p>
+        </div>
+    </footer>
+</body>
+</html>

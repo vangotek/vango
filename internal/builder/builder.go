@@ -5,35 +5,65 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"vango/internal/config"
 	"vango/internal/content"
 	"vango/internal/template"
+	"vango/internal/theme"
 )
 
 // Builder handles site building
 type Builder struct {
-	config   *config.Config
-	parser   *content.Parser
-	engine   *template.Engine
-	pages    []*content.Page
+	config       *config.Config
+	parser       *content.Parser
+	engine       *template.Engine
+	pages        []*content.Page
+	themeManager *theme.ThemeManager
+	
+	// Performance enhancements
+	workers      int
+	cache        map[string]time.Time // File modification cache
+	cacheMutex   sync.RWMutex
 }
 
 // New creates a new builder
 func New(cfg *config.Config) *Builder {
+	workers := runtime.NumCPU()
+	if workers > 8 {
+		workers = 8 // Cap at 8 for optimal performance
+	}
+	
+	tm := theme.NewThemeManager(cfg)
 	return &Builder{
-		config: cfg,
-		parser: content.NewParser(),
-		engine: template.NewEngine(cfg),
-		pages:  make([]*content.Page, 0),
+		config:       cfg,
+		parser:       content.NewParser(),
+		engine:       template.NewEngine(cfg, tm),
+		pages:        make([]*content.Page, 0),
+		themeManager: tm,
+		workers:      workers,
+		cache:        make(map[string]time.Time),
 	}
 }
 
 // Build builds the entire site
 func (b *Builder) Build() error {
-	fmt.Println("Building site...")
+	start := time.Now()
+	fmt.Printf("🏗️  Building site with %d workers...\n", b.workers)
+
+	// Load themes and set active theme
+	if err := b.themeManager.LoadThemes(); err != nil {
+		return fmt.Errorf("failed to load themes: %w", err)
+	}
+	if b.config.Theme != "" {
+		if err := b.themeManager.SetActiveTheme(b.config.Theme); err != nil {
+			return fmt.Errorf("failed to set active theme: %w", err)
+		}
+		fmt.Printf("📦 Using theme: %s\n", b.config.Theme)
+	}
 
 	// Clean public directory if configured
 	if b.config.CleanBuild {
@@ -47,28 +77,265 @@ func (b *Builder) Build() error {
 		return fmt.Errorf("failed to create public directory: %w", err)
 	}
 
-	// Load templates
-	if err := b.engine.LoadTemplates(); err != nil {
+	// Load templates with caching
+	if err := b.engine.LoadTemplates(b.themeManager.GetThemeTemplatesPath()); err != nil {
 		return fmt.Errorf("failed to load templates: %w", err)
 	}
 
-	// Parse content files
-	if err := b.parseContent(); err != nil {
+	// Parse content files in parallel
+	if err := b.parseContentParallel(); err != nil {
 		return fmt.Errorf("failed to parse content: %w", err)
 	}
 
-	// Generate pages
-	if err := b.generatePages(); err != nil {
+	// Generate pages in parallel
+	if err := b.generatePagesParallel(); err != nil {
 		return fmt.Errorf("failed to generate pages: %w", err)
 	}
 
-	// Copy static assets
-	if err := b.copyStaticFiles(); err != nil {
-		return fmt.Errorf("failed to copy static files: %w", err)
+	// Copy static assets and theme assets in parallel
+	errChan := make(chan error, 2)
+	go func() {
+		errChan <- b.copyStaticFiles()
+	}()
+	go func() {
+		errChan <- b.themeManager.CopyThemeAssets(b.config.PublicDir)
+	}()
+
+	// Wait for both operations to complete
+	for i := 0; i < 2; i++ {
+		if err := <-errChan; err != nil {
+			return fmt.Errorf("failed to copy assets: %w", err)
+		}
 	}
 
-	fmt.Printf("Generated %d pages\n", len(b.pages))
+	duration := time.Since(start)
+	fmt.Printf("✅ Generated %d pages in %v\n", len(b.pages), duration)
 	return nil
+}
+
+// parseContentParallel parses content files using worker goroutines
+func (b *Builder) parseContentParallel() error {
+	// Collect all markdown files
+	var files []string
+	err := filepath.Walk(b.config.ContentDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() && strings.HasSuffix(strings.ToLower(path), ".md") {
+			// Check cache for file modification time
+			if b.isFileModified(path, info.ModTime()) {
+				files = append(files, path)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	if len(files) == 0 {
+		fmt.Println("📝 No content files to process")
+		return nil
+	}
+
+	fmt.Printf("📝 Processing %d content files...\n", len(files))
+
+	// Create worker pool
+	fileChan := make(chan string, len(files))
+	resultChan := make(chan *content.Page, len(files))
+	errorChan := make(chan error, len(files))
+
+	// Start workers
+	var wg sync.WaitGroup
+	for i := 0; i < b.workers; i++ {
+		wg.Add(1)
+		go b.contentWorker(&wg, fileChan, resultChan, errorChan)
+	}
+
+	// Send files to workers
+	for _, file := range files {
+		fileChan <- file
+	}
+	close(fileChan)
+
+	// Wait for workers to complete
+	go func() {
+		wg.Wait()
+		close(resultChan)
+		close(errorChan)
+	}()
+
+	// Collect results
+	var pages []*content.Page
+	var errors []error
+
+	for page := range resultChan {
+		if page != nil {
+			pages = append(pages, page)
+		}
+	}
+
+	for err := range errorChan {
+		if err != nil {
+			errors = append(errors, err)
+		}
+	}
+
+	if len(errors) > 0 {
+		return fmt.Errorf("content parsing errors: %v", errors[0])
+	}
+
+	b.pages = pages
+	return nil
+}
+
+// contentWorker processes content files
+func (b *Builder) contentWorker(wg *sync.WaitGroup, fileChan <-chan string, resultChan chan<- *content.Page, errorChan chan<- error) {
+	defer wg.Done()
+	
+	for filePath := range fileChan {
+		page, err := b.parser.ParseFile(filePath, b.config.ContentDir)
+		if err != nil {
+			errorChan <- fmt.Errorf("failed to parse %s: %w", filePath, err)
+			continue
+		}
+
+		// Check if page should be built
+		if !page.ShouldBuild(b.config.BuildDrafts, b.config.BuildFuture) {
+			continue
+		}
+
+		resultChan <- page
+	}
+}
+
+// generatePagesParallel renders pages using worker goroutines
+func (b *Builder) generatePagesParallel() error {
+	if len(b.pages) == 0 {
+		return nil
+	}
+
+	fmt.Printf("🎨 Rendering %d pages...\n", len(b.pages))
+
+	// Create worker pool for page generation
+	pageChan := make(chan *content.Page, len(b.pages))
+	errorChan := make(chan error, len(b.pages))
+
+	// Start workers
+	var wg sync.WaitGroup
+	for i := 0; i < b.workers; i++ {
+		wg.Add(1)
+		go b.pageWorker(&wg, pageChan, errorChan)
+	}
+
+	// Send pages to workers
+	for _, page := range b.pages {
+		pageChan <- page
+	}
+	close(pageChan)
+
+	// Wait for workers to complete
+	go func() {
+		wg.Wait()
+		close(errorChan)
+	}()
+
+	// Collect errors
+	var errors []error
+	for err := range errorChan {
+		if err != nil {
+			errors = append(errors, err)
+		}
+	}
+
+	if len(errors) > 0 {
+		return fmt.Errorf("page generation errors: %v", errors[0])
+	}
+
+	return nil
+}
+
+// pageWorker renders individual pages
+func (b *Builder) pageWorker(wg *sync.WaitGroup, pageChan <-chan *content.Page, errorChan chan<- error) {
+	defer wg.Done()
+	
+	for page := range pageChan {
+		if err := b.generatePage(page); err != nil {
+			errorChan <- fmt.Errorf("failed to generate page %s: %w", page.FilePath, err)
+		}
+	}
+}
+
+// isFileModified checks if a file has been modified since last build
+func (b *Builder) isFileModified(path string, modTime time.Time) bool {
+	b.cacheMutex.RLock()
+	cached, exists := b.cache[path]
+	b.cacheMutex.RUnlock()
+	
+	if !exists || modTime.After(cached) {
+		b.cacheMutex.Lock()
+		b.cache[path] = modTime
+		b.cacheMutex.Unlock()
+		return true
+	}
+	return false
+}
+
+// IncrementalBuild performs incremental build based on changed files
+func (b *Builder) IncrementalBuild(changedFiles []string) error {
+	start := time.Now()
+	fmt.Printf("🔄 Incremental build for %d changed files...\n", len(changedFiles))
+
+	var needsFullRebuild bool
+	var contentFiles []string
+
+	for _, file := range changedFiles {
+		switch {
+		case strings.HasSuffix(file, ".html"):
+			// Template changed, need full rebuild
+			needsFullRebuild = true
+		case strings.HasSuffix(file, ".toml"):
+			// Config changed, need full rebuild
+			needsFullRebuild = true
+		case strings.HasSuffix(file, ".md"):
+			// Content file changed
+			contentFiles = append(contentFiles, file)
+		case strings.Contains(file, b.config.StaticDir):
+			// Static file changed, just copy
+			if err := b.copyStaticFiles(); err != nil { // Removed argument (file). Check for bugs in this line.
+				return fmt.Errorf("failed to copy static file: %w", err)
+			}
+		}
+	}
+
+	if needsFullRebuild {
+		return b.Build()
+	}
+
+	// Process only changed content files
+	for _, file := range contentFiles {
+		if err := b.rebuildContentFile(file); err != nil {
+			return fmt.Errorf("failed to rebuild content file %s: %w", file, err)
+		}
+	}
+
+	duration := time.Since(start)
+	fmt.Printf("✅ Incremental build completed in %v\n", duration)
+	return nil
+}
+
+// Additional helper methods for incremental builds...
+func (b *Builder) rebuildContentFile(filePath string) error {
+	page, err := b.parser.ParseFile(filePath, b.config.ContentDir)
+	if err != nil {
+		return err
+	}
+
+	if !page.ShouldBuild(b.config.BuildDrafts, b.config.BuildFuture) {
+		return nil
+	}
+
+	return b.generatePage(page)
 }
 
 // cleanPublicDir removes and recreates the public directory

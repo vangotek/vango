@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"vango/internal/config"
-	vangoTemplate "vango/internal/template"
 )
 
 // Example of how to extend VanGo with custom template functions
@@ -134,14 +133,14 @@ func CustomFunctions() template.FuncMap {
 }
 
 // Example of how to create a custom template engine with additional functions
-func NewCustomEngine(cfg *config.Config) *vangoTemplate.Engine {
-	engine := vangoTemplate.NewEngine(cfg)
+//func NewCustomEngine(cfg *config.Config) *vangoTemplate.Engine {
+	//engine := vangoTemplate.NewEngine(cfg)
 	
 	// In a real implementation, you would need to modify the template engine
 	// to accept custom functions. This is just an example structure.
 	
-	return engine
-}
+	//return engine
+//}
 
 // Example usage in a custom build script
 func ExampleCustomBuild() {

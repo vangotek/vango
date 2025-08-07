@@ -1,0 +1,21 @@
+{
+  "name": "modern-app",
+  "version": "1.0.0",
+  "description": "A modern, clean theme with responsive design and dark mode support",
+  "author": "VanGo Team",
+  "homepage": "",
+  "license": "MIT",
+  "min_vango_version": "1.0.0",
+  "tags": ["modern", "responsive", "dark-mode", "clean"],
+  "features": ["responsive", "dark-mode", "syntax-highlighting", "reading-time"],
+  "config": {
+    "colors": {
+      "primary": "#3b82f6",
+      "secondary": "#6b7280",
+      "accent": "#10b981"
+    }
+  },
+  "layouts_dir": "layouts",
+  "static_dir": "static",
+  "assets_dir": "assets"
+}
