@@ -48,24 +48,23 @@ func NewEngine(cfg *config.Config, tm *theme.ThemeManager) *Engine {
 
 // LoadTemplates loads all templates from the given directory and the default layout directory
 func (e *Engine) LoadTemplates(themeLayoutDir string) error {
-	// Load templates from the default layout directory first
-	if err := e.parseAndAddTemplates(e.config.LayoutDir); err != nil {
-		return fmt.Errorf("failed to parse default templates: %w", err)
-	}
-
-	// If a theme layout directory is provided and is different, load templates from there
-	// This will override default templates with the same name
+	// Load theme templates first (higher priority)
 	if themeLayoutDir != "" && themeLayoutDir != e.config.LayoutDir {
 		if err := e.parseAndAddTemplates(themeLayoutDir); err != nil {
 			return fmt.Errorf("failed to parse theme templates: %w", err)
 		}
 	}
 
+	// Then load default templates (lower priority - won't override existing)
+	if err := e.parseAndAddTemplatesWithOverride(e.config.LayoutDir, false); err != nil {
+		return fmt.Errorf("failed to parse default templates: %w", err)
+	}
+
 	return nil
 }
 
-// parseAndAddTemplates walks a directory, parses HTML files, and adds them to the template set
-func (e *Engine) parseAndAddTemplates(layoutDir string) error {
+// parseAndAddTemplatesWithOverride walks a directory, parses HTML files, and adds them to the template set with override control
+func (e *Engine) parseAndAddTemplatesWithOverride(layoutDir string, allowOverride bool) error {
 	return filepath.Walk(layoutDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -75,13 +74,18 @@ func (e *Engine) parseAndAddTemplates(layoutDir string) error {
 			return nil
 		}
 
-			// Get template name relative to layouts directory, without .html extension
+		// Get template name relative to layouts directory, without .html extension
 		relPath, err := filepath.Rel(layoutDir, path)
 		if err != nil {
 			return fmt.Errorf("failed to get relative path for template %s: %w", path, err)
 		}
 		templateName := strings.TrimSuffix(relPath, ".html")
 		templateName = filepath.ToSlash(templateName) // Ensure forward slashes on all platforms
+
+		// Skip if template already exists and override is not allowed
+		if !allowOverride && e.templates.Lookup(templateName) != nil {
+			return nil
+		}
 
 		// Read file content
 		content, err := os.ReadFile(path)
@@ -97,6 +101,11 @@ func (e *Engine) parseAndAddTemplates(layoutDir string) error {
 
 		return nil
 	})
+}
+
+// parseAndAddTemplates walks a directory, parses HTML files, and adds them to the template set
+func (e *Engine) parseAndAddTemplates(layoutDir string) error {
+	return e.parseAndAddTemplatesWithOverride(layoutDir, true)
 }
 
 // Render renders a page using the appropriate template
@@ -119,8 +128,20 @@ func (e *Engine) Render(page *content.Page, pages []*content.Page) (string, erro
 	
 	// Execute template
 	var buf strings.Builder
-	if err := tmpl.Execute(&buf, data); err != nil {
-		return "", fmt.Errorf("failed to execute template %s: %w", templateName, err)
+	
+	// Handle template inheritance for base templates
+	if templateName == "_default/baseof" {
+		// For base templates, we need to execute with proper context
+		// The base template will call the appropriate content template
+		err := e.templates.ExecuteTemplate(&buf, "_default/baseof", data)
+		if err != nil {
+			return "", fmt.Errorf("failed to execute base template: %w", err)
+		}
+	} else {
+		// For non-base templates, execute directly
+		if err := tmpl.Execute(&buf, data); err != nil {
+			return "", fmt.Errorf("failed to execute template %s: %w", templateName, err)
+		}
 	}
 	
 	return buf.String(), nil
@@ -142,6 +163,12 @@ func (e *Engine) getTemplateName(page *content.Page) string {
 		if e.templates.Lookup(sectionTemplate) != nil { // Use Lookup
 			return sectionTemplate
 		}
+	}
+	
+	// For themes with base templates, try to use baseof as the main template
+	if e.templates.Lookup("_default/baseof") != nil {
+		fmt.Printf("🎨 Using base template: _default/baseof\n")
+		return "_default/baseof"
 	}
 	
 	// Default to single template

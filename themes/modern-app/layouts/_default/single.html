@@ -1,127 +1,47 @@
-<!DOCTYPE html>
-<html lang="{{ .Site.Language }}">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ .Page.Title }} | {{ .Site.Title }}</title>
-    <meta name="description" content="{{ default .Site.Description .Page.Description }}">
-    <meta name="author" content="{{ default .Site.Author .Page.Author }}">
-    
-    <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="article">
-    <meta property="og:url" content="{{ .Site.BaseURL }}{{ .Page.URL }}">
-    <meta property="og:title" content="{{ .Page.Title }}">
-    <meta property="og:description" content="{{ default .Site.Description .Page.Description }}">
-    
-    <!-- Twitter -->
-    <meta property="twitter:card" content="summary">
-    <meta property="twitter:url" content="{{ .Site.BaseURL }}{{ .Page.URL }}">
-    <meta property="twitter:title" content="{{ .Page.Title }}">
-    <meta property="twitter:description" content="{{ default .Site.Description .Page.Description }}">
-    
-    <link rel="stylesheet" href="{{ themeAsset "css/style.css" }}">
-    <link rel="canonical" href="{{ .Site.BaseURL }}{{ .Page.URL }}">
-    
-    {{ if hasFeature "syntax" }}
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script>hljs.highlightAll();</script>
-    {{ end }}
-</head>
-<body class="modern-theme">
-    <nav class="navbar">
-        <div class="nav-container">
-            <a href="/" class="nav-logo">{{ .Site.Title }}</a>
-            <ul class="nav-menu">
-                <li><a href="/" class="nav-link">Home</a></li>
-                <li><a href="/about/" class="nav-link">About</a></li>
-            </ul>
-            {{ if hasFeature "dark_mode" }}
-            <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
+{{ define "content" }}
+<article class="article-container">
+    <header class="article-header">
+        <h1 class="article-title">{{ .Page.Title }}</h1>
+        <div class="article-meta">
+            <time datetime="{{ dateFormat "2006-01-02" .Page.ParsedDate }}">
+                {{ humanizeDate .Page.ParsedDate }}
+            </time>
+            {{ if .Page.Author }}
+                by <span class="author-name">{{ .Page.Author }}</span>
+            {{ end }}
+            {{ if hasFeature "reading_time" }}
+                {{ if gt .Page.ReadingTime 0 }}
+                • <span class="reading-time">{{ .Page.ReadingTime }} min read</span>
+                {{ end }}
+            {{ end }}
+            {{ if .Page.WordCount }}
+                • <span class="word-count">{{ .Page.WordCount }} words</span>
             {{ end }}
         </div>
-    </nav>
-
-    <main class="main-content">
-        <article class="article-container">
-            <header class="article-header">
-                <h1 class="article-title">{{ .Page.Title }}</h1>
-                <div class="article-meta">
-                    <time datetime="{{ dateFormat "2006-01-02" .Page.ParsedDate }}">
-                        {{ humanizeDate .Page.ParsedDate }}
-                    </time>
-                    {{ if .Page.Author }}
-                        by <span class="author-name">{{ .Page.Author }}</span>
-                    {{ end }}
-                    {{ if hasFeature "reading_time" }}
-                        {{ if gt .Page.ReadingTime 0 }}
-                        • <span class="reading-time">{{ .Page.ReadingTime }} min read</span>
-                        {{ end }}
-                    {{ end }}
-                    {{ if .Page.WordCount }}
-                        • <span class="word-count">{{ .Page.WordCount }} words</span>
-                    {{ end }}
-                </div>
-                
-                {{ if .Page.Tags }}
-                <div class="article-tags">
-                    {{ range .Page.Tags }}
-                        <span class="tag">#{{ . }}</span>
-                    {{ end }}
-                </div>
-                {{ end }}
-            </header>
-
-            <div class="article-content">
-                {{ .Page.Content }}
-            </div>
-
-            {{ if .Page.Categories }}
-            <footer class="article-footer">
-                <div class="categories">
-                    <strong>Categories:</strong>
-                    {{ range $i, $cat := .Page.Categories }}
-                        {{ if $i }}, {{ end }}
-                        <a href="/categories/{{ lower $cat }}/" class="category-link">{{ $cat }}</a>
-                    {{ end }}
-                </div>
-            </footer>
+        
+        {{ if .Page.Tags }}
+        <div class="article-tags">
+            {{ range .Page.Tags }}
+                <span class="tag">#{{ . }}</span>
             {{ end }}
-        </article>
-    </main>
+        </div>
+        {{ end }}
+    </header>
 
-    <footer class="site-footer">
-        <div class="footer-container">
-            <p>&copy; {{ dateFormat "2006" now }} {{ .Site.Author }}. Built with VanGo.</p>
-            {{ if .Site.Params.social }}
-            <div class="social-links">
-                {{ if index .Site.Params.social "twitter" }}
-                    <a href="https://twitter.com/{{ index .Site.Params.social "twitter" }}" target="_blank" class="social-link">Twitter</a>
-                {{ end }}
-                {{ if index .Site.Params.social "github" }}
-                    <a href="https://github.com/{{ index .Site.Params.social "github" }}" target="_blank" class="social-link">GitHub</a>
-                {{ end }}
-            </div>
+    <div class="article-content">
+        {{ .Page.Content }}
+    </div>
+
+    {{ if .Page.Categories }}
+    <footer class="article-footer">
+        <div class="categories">
+            <strong>Categories:</strong>
+            {{ range $i, $cat := .Page.Categories }}
+                {{ if $i }}, {{ end }}
+                <a href="/categories/{{ lower $cat }}/" class="category-link">{{ $cat }}</a>
             {{ end }}
         </div>
     </footer>
-    
-    {{ if hasFeature "dark_mode" }}
-    <script>
-        function toggleTheme() {
-            document.body.classList.toggle('dark-theme');
-            const isDark = document.body.classList.contains('dark-theme');
-            localStorage.setItem('theme', isDark ? 'dark' : 'light');
-            document.querySelector('.theme-toggle').textContent = isDark ? '☀️' : '🌙';
-        }
-        
-        // Load saved theme
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.body.classList.add('dark-theme');
-            document.querySelector('.theme-toggle').textContent = '☀️';
-        }
-    </script>
     {{ end }}
-</body>
-</html>
+</article>
+{{ end }}

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="{{ .Site.Language }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ block "title" . }}{{ .Page.Title }} | {{ .Site.Title }}{{ end }}</title>
+    <meta name="description" content="{{ block "description" . }}{{ default .Site.Description .Page.Description }}{{ end }}">
+    <meta name="author" content="{{ default .Site.Author .Page.Author }}">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="{{ block "og_type" . }}article{{ end }}">
+    <meta property="og:url" content="{{ .Site.BaseURL }}{{ .Page.URL }}">
+    <meta property="og:title" content="{{ .Page.Title }}">
+    <meta property="og:description" content="{{ default .Site.Description .Page.Description }}">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary">
+    <meta property="twitter:url" content="{{ .Site.BaseURL }}{{ .Page.URL }}">
+    <meta property="twitter:title" content="{{ .Page.Title }}">
+    <meta property="twitter:description" content="{{ default .Site.Description .Page.Description }}">
+    
+    <link rel="stylesheet" href="{{ themeAsset "css/style.css" }}">
+    <link rel="canonical" href="{{ .Site.BaseURL }}{{ .Page.URL }}">
+    
+    {{ block "head" . }}{{ end }}
+    
+    {{ if hasFeature "syntax" }}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+    {{ end }}
+</head>
+<body class="{{ block "body_class" . }}modern-theme{{ end }}">
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-logo">{{ .Site.Title }}</a>
+            <ul class="nav-menu">
+                <li><a href="/" class="nav-link">Home</a></li>
+                <li><a href="/about/" class="nav-link">About</a></li>
+            </ul>
+            <div class="nav-actions">
+                <button class="admin-panel-btn" onclick="openAdminPanel()" title="Admin Panel">
+                    <span class="admin-icon">⚙️</span>
+                    <span class="admin-text">Admin</span>
+                </button>
+                {{ if hasFeature "dark_mode" }}
+                <button class="theme-toggle" onclick="toggleTheme()" title="Toggle Theme">🌙</button>
+                {{ end }}
+            </div>
+        </div>
+    </nav>
+
+    {{ block "main" . }}
+    <main class="main-content">
+        {{ block "content" . }}{{ end }}
+    </main>
+    {{ end }}
+
+    <footer class="site-footer">
+        <div class="footer-container">
+            <p>&copy; {{ dateFormat "2006" now }} {{ .Site.Author }}. Built with VanGo.</p>
+            {{ if .Site.Params.social }}
+            <div class="social-links">
+                {{ if index .Site.Params.social "twitter" }}
+                    <a href="https://twitter.com/{{ index .Site.Params.social "twitter" }}" target="_blank" class="social-link">Twitter</a>
+                {{ end }}
+                {{ if index .Site.Params.social "github" }}
+                    <a href="https://github.com/{{ index .Site.Params.social "github" }}" target="_blank" class="social-link">GitHub</a>
+                {{ end }}
+            </div>
+            {{ end }}
+        </div>
+    </footer>
+    
+    {{ block "scripts" . }}
+    <script>
+        function openAdminPanel() {
+            window.location.href = '/admin/';
+        }
+    </script>
+    {{ if hasFeature "dark_mode" }}
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-theme');
+            const isDark = document.body.classList.contains('dark-theme');
+            sessionStorage.setItem('theme', isDark ? 'dark' : 'light');
+            document.querySelector('.theme-toggle').textContent = isDark ? '☀️' : '🌙';
+        }
+        
+        // Load saved theme from sessionStorage
+        const savedTheme = sessionStorage.getItem('theme');
+        if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.body.classList.add('dark-theme');
+            if (document.querySelector('.theme-toggle')) {
+                document.querySelector('.theme-toggle').textContent = '☀️';
+            }
+        }
+    </script>
+    {{ end }}
+    {{ end }}
+</body>
+</html>

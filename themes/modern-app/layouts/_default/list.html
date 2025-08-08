@@ -1,105 +1,46 @@
-<!DOCTYPE html>
-<html lang="{{ .Site.Language }}">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ .Site.Title }}</title>
-    <meta name="description" content="{{ .Site.Description }}">
-    <link rel="stylesheet" href="{{ themeAsset "css/style.css" }}">
-</head>
-<body class="modern-theme">
-    <nav class="navbar">
-        <div class="nav-container">
-            <a href="/" class="nav-logo">{{ .Site.Title }}</a>
-            <ul class="nav-menu">
-                <li><a href="/" class="nav-link">Home</a></li>
-                <li><a href="/about/" class="nav-link">About</a></li>
-            </ul>
-            {{ if hasFeature "dark_mode" }}
-            <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
-            {{ end }}
-        </div>
-    </nav>
+{{ define "content" }}
+<section class="hero-section">
+    <div class="hero-content">
+        <h1 class="hero-title">{{ .Site.Title }}</h1>
+        <p class="hero-description">{{ .Site.Description }}</p>
+    </div>
+</section>
 
-    <main class="main-content">
-        <section class="hero-section">
-            <div class="hero-content">
-                <h1 class="hero-title">{{ .Site.Title }}</h1>
-                <p class="hero-description">{{ .Site.Description }}</p>
-            </div>
-        </section>
-        
-        <section class="posts-section">
-            <div class="section-header">
-                <h2 class="section-title">Latest Posts</h2>
-            </div>
-            
-            <div class="posts-grid">
-                {{ range .Pages }}
-                <article class="post-card">
-                    <div class="post-card-content">
-                        <h3 class="post-card-title">
-                            <a href="{{ .URL }}" class="post-link">{{ .Title }}</a>
-                        </h3>
-                        <div class="post-card-meta">
-                            <time datetime="{{ dateFormat "2006-01-02" .ParsedDate }}">
-                                {{ humanizeDate .ParsedDate }}
-                            </time>
-                            {{ if hasFeature "reading_time" }}
-                                {{ if gt .ReadingTime 0 }}
-                                • {{ .ReadingTime }} min read
-                                {{ end }}
-                            {{ end }}
-                        </div>
-                        {{ if .Description }}
-                        <p class="post-card-excerpt">{{ .Description }}</p>
-                        {{ end }}
-                        {{ if .Tags }}
-                        <div class="post-card-tags">
-                            {{ range .Tags }}
-                                <span class="tag">#{{ . }}</span>
-                            {{ end }}
-                        </div>
-                        {{ end }}
-                    </div>
-                </article>
-                {{ end }}
-            </div>
-        </section>
-    </main>
-
-    <footer class="site-footer">
-        <div class="footer-container">
-            <p>&copy; {{ dateFormat "2006" now }} {{ .Site.Author }}. Built with VanGo.</p>
-            {{ if .Site.Params.social }}
-            <div class="social-links">
-                {{ if index .Site.Params.social "twitter" }}
-                    <a href="https://twitter.com/{{ index .Site.Params.social "twitter" }}" target="_blank" class="social-link">Twitter</a>
-                {{ end }}
-                {{ if index .Site.Params.social "github" }}
-                    <a href="https://github.com/{{ index .Site.Params.social "github" }}" target="_blank" class="social-link">GitHub</a>
-                {{ end }}
-            </div>
-            {{ end }}
-        </div>
-    </footer>
+<section class="posts-section">
+    <div class="section-header">
+        <h2 class="section-title">Latest Posts</h2>
+    </div>
     
-    {{ if hasFeature "dark_mode" }}
-    <script>
-        function toggleTheme() {
-            document.body.classList.toggle('dark-theme');
-            const isDark = document.body.classList.contains('dark-theme');
-            localStorage.setItem('theme', isDark ? 'dark' : 'light');
-            document.querySelector('.theme-toggle').textContent = isDark ? '☀️' : '🌙';
-        }
-        
-        // Load saved theme
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.body.classList.add('dark-theme');
-            document.querySelector('.theme-toggle').textContent = '☀️';
-        }
-    </script>
-    {{ end }}
-</body>
-</html>
+    <div class="posts-grid">
+        {{ range .Pages }}
+        <article class="post-card">
+            <div class="post-card-content">
+                <h3 class="post-card-title">
+                    <a href="{{ .URL }}" class="post-link">{{ .Title }}</a>
+                </h3>
+                <div class="post-card-meta">
+                    <time datetime="{{ dateFormat "2006-01-02" .ParsedDate }}">
+                        {{ humanizeDate .ParsedDate }}
+                    </time>
+                    {{ if hasFeature "reading_time" }}
+                        {{ if gt .ReadingTime 0 }}
+                        • {{ .ReadingTime }} min read
+                        {{ end }}
+                    {{ end }}
+                </div>
+                {{ if .Description }}
+                <p class="post-card-excerpt">{{ .Description }}</p>
+                {{ end }}
+                {{ if .Tags }}
+                <div class="post-card-tags">
+                    {{ range .Tags }}
+                        <span class="tag">#{{ . }}</span>
+                    {{ end }}
+                </div>
+                {{ end }}
+            </div>
+        </article>
+        {{ end }}
+    </div>
+</section>
+{{ end }}

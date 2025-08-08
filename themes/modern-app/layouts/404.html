@@ -1,0 +1,284 @@
+{{ define "title" }}Page Not Found | {{ .Site.Title }}{{ end }}
+
+{{ define "content" }}
+<div class="error-page">
+    <div class="error-container">
+        <div class="error-icon">
+            <span class="error-number">404</span>
+        </div>
+        
+        <div class="error-content">
+            <h1 class="error-title">Page Not Found</h1>
+            <p class="error-description">
+                Sorry, the page you're looking for doesn't exist. It might have been moved, deleted, or you entered the wrong URL.
+            </p>
+            
+            <div class="error-actions">
+                <a href="/" class="btn-primary" id="homeBtn" onclick="window.location.href='/'; return false;">
+                    <span class="btn-icon">🏠</span>
+                    Back to Home
+                </a>
+                <button onclick="history.back()" class="btn-secondary" id="backBtn">
+                    <span class="btn-icon">←</span>
+                    Go Back
+                </button>
+            </div>
+            
+            <div class="error-suggestions">
+                <p class="suggestions-title">You might want to:</p>
+                <ul class="suggestions-list">
+                    <li><a href="/">Visit our homepage</a></li>
+                    <li><a href="/about/">Learn about us</a></li>
+                    <li>Check the URL for typos</li>
+                    <li>Use the search if available</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.error-page {
+    min-height: calc(100vh - 200px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-xl);
+    text-align: center;
+}
+
+.error-container {
+    max-width: 600px;
+    width: 100%;
+}
+
+.error-icon {
+    margin-bottom: var(--spacing-xl);
+}
+
+.error-number {
+    font-size: 8rem;
+    font-weight: 900;
+    color: var(--color-primary);
+    opacity: 0.3;
+    line-height: 1;
+    display: block;
+}
+
+.error-title {
+    font-size: var(--font-size-3xl);
+    font-weight: 700;
+    margin-bottom: var(--spacing-lg);
+    color: var(--color-text);
+}
+
+.error-description {
+    font-size: var(--font-size-lg);
+    color: var(--color-text-light);
+    margin-bottom: var(--spacing-2xl);
+    line-height: 1.6;
+}
+
+.error-actions {
+    display: flex;
+    gap: var(--spacing-lg);
+    justify-content: center;
+    margin-bottom: var(--spacing-2xl);
+    flex-wrap: wrap;
+}
+
+.btn-primary,
+.btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md) var(--spacing-xl);
+    border-radius: var(--radius-lg);
+    font-weight: 600;
+    text-decoration: none;
+    transition: all var(--transition-fast);
+    border: none;
+    cursor: pointer;
+    font-size: var(--font-size-base);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+    color: white;
+    box-shadow: var(--shadow-md);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+    color: white;
+}
+
+.btn-secondary {
+    background: var(--color-surface);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+}
+
+.btn-secondary:hover {
+    background: var(--color-border);
+    transform: translateY(-1px);
+}
+
+.btn-icon {
+    font-size: 1.1em;
+}
+
+.error-suggestions {
+    text-align: left;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.suggestions-title {
+    font-weight: 600;
+    margin-bottom: var(--spacing-md);
+    color: var(--color-text);
+}
+
+.suggestions-list {
+    list-style: none;
+    padding: 0;
+}
+
+.suggestions-list li {
+    margin-bottom: var(--spacing-sm);
+    padding-left: var(--spacing-lg);
+    position: relative;
+}
+
+.suggestions-list li:before {
+    content: "•";
+    color: var(--color-primary);
+    position: absolute;
+    left: 0;
+    font-weight: bold;
+}
+
+.suggestions-list a {
+    color: var(--color-primary);
+    text-decoration: none;
+}
+
+.suggestions-list a:hover {
+    text-decoration: underline;
+}
+
+/* Dark theme styles */
+body.dark-theme .error-title {
+    color: var(--color-dark-text);
+}
+
+body.dark-theme .error-description,
+body.dark-theme .suggestions-title {
+    color: var(--color-dark-text-light);
+}
+
+body.dark-theme .btn-secondary {
+    background: var(--color-dark-surface);
+    color: var(--color-dark-text);
+    border-color: var(--color-dark-border);
+}
+
+body.dark-theme .btn-secondary:hover {
+    background: var(--color-dark-border);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .error-number {
+        font-size: 6rem;
+    }
+    
+    .error-title {
+        font-size: var(--font-size-2xl);
+    }
+    
+    .error-actions {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .btn-primary,
+    .btn-secondary {
+        width: 200px;
+        justify-content: center;
+    }
+    
+    .error-suggestions {
+        text-align: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .error-page {
+        padding: var(--spacing-md);
+    }
+    
+    .error-number {
+        font-size: 4rem;
+    }
+    
+    .error-description {
+        font-size: var(--font-size-base);
+    }
+}
+</style>
+
+<script>
+// Ensure navigation works properly
+document.addEventListener('DOMContentLoaded', function() {
+    const homeBtn = document.getElementById('homeBtn');
+    const backBtn = document.getElementById('backBtn');
+    
+    // Force home button to work
+    if (homeBtn) {
+        homeBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            // Try multiple ways to navigate home
+            try {
+                window.location.assign('/');
+            } catch(err) {
+                window.location.href = '/';
+            }
+        });
+    }
+    
+    // Handle back button with fallback
+    if (backBtn) {
+        backBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            try {
+                if (window.history.length > 1 && document.referrer) {
+                    window.history.back();
+                } else {
+                    window.location.assign('/');
+                }
+            } catch(err) {
+                window.location.href = '/';
+            }
+        });
+    }
+    
+    // Add keyboard navigation
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'h' || e.key === 'H') {
+            window.location.assign('/');
+        }
+        if (e.key === 'Escape') {
+            if (window.history.length > 1) {
+                window.history.back();
+            } else {
+                window.location.assign('/');
+            }
+        }
+    });
+});
+</script>
+{{ end }}
