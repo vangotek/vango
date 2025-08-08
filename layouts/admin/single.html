@@ -1,0 +1,280 @@
+{{/* layouts/admin/single.html */}} {{ define "title" }}Admin Panel | {{
+.Site.Title }}{{ end }} {{ define "content" }}
+<div class="admin-panel">
+  <div class="admin-header">
+    <h1 class="admin-title">
+      <span class="admin-icon">⚙️</span>
+      VanGo Admin Panel
+    </h1>
+    <p class="admin-subtitle">Live development server management</p>
+  </div>
+
+  <div class="admin-grid">
+    <div class="admin-card stats-card">
+      <div class="card-header">
+        <h3 class="card-title">📊 Server Statistics</h3>
+      </div>
+      <div class="card-content">
+        <div class="stats-grid" id="stats-container">
+          <p>Loading stats...</p>
+        </div>
+        <div id="build-errors-container"></div>
+      </div>
+    </div>
+
+    <div class="admin-card actions-card">
+      <div class="card-header">
+        <h3 class="card-title">⚡ Quick Actions</h3>
+      </div>
+      <div class="card-content">
+        <button class="admin-btn primary" onclick="rebuild()">
+          <span class="btn-icon">🔄</span> Rebuild Site
+        </button>
+        <button class="admin-btn secondary" onclick="clearCache()">
+          <span class="btn-icon">🗑️</span> Clear Cache
+        </button>
+        <button class="admin-btn secondary" onclick="location.reload()">
+          <span class="btn-icon">🔄</span> Refresh Panel
+        </button>
+      </div>
+    </div>
+
+    <div class="admin-card content-card">
+      <div class="card-header">
+        <h3 class="card-title">📄 Generated Pages</h3>
+      </div>
+      <div class="card-content">
+        <div class="content-list" id="pages-container">
+          <p>Loading pages...</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="admin-card system-card">
+      <div class="card-header">
+        <h3 class="card-title">💻 Configuration</h3>
+      </div>
+      <div class="card-content">
+        <pre id="config-container"><p>Loading config...</p></pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Paste all the CSS from your "newly created admin panel" here */
+  .admin-panel {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+  /* ... etc ... */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    text-align: center;
+  }
+  .stat-value {
+    font-size: 2em;
+    font-weight: bold;
+    color: var(--color-primary);
+  }
+  .stat-label {
+    color: var(--color-text-light);
+  }
+  .error {
+    background: #fff5f5;
+    border: 1px solid #feb2b2;
+    color: #e53e3e;
+    padding: 10px;
+    border-radius: 4px;
+    margin: 10px 0;
+  }
+  pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    background: var(--color-surface);
+    padding: 1rem;
+    border-radius: 8px;
+  }
+  /* ... paste the rest of your new panel's CSS ... */
+</style>
+
+<script>
+  // NOTE: This is the functional JavaScript from your OLD panel,
+  // adapted to work with the NEW panel's HTML structure.
+
+  async function loadStats() {
+    try {
+      const response = await fetch("/api/stats");
+      if (!response.ok) throw new Error("Failed to fetch stats");
+      const stats = await response.json();
+
+      const statsContainer = document.getElementById("stats-container");
+      statsContainer.innerHTML = `
+            <div class="stat-item">
+                <div class="stat-value">${stats.requests || 0}</div>
+                <div class="stat-label">Total Requests</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">${stats.build_count || 0}</div>
+                <div class="stat-label">Builds</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">${stats.client_count || 0}</div>
+                <div class="stat-label">Connected Clients</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">${stats.file_watches || 0}</div>
+                <div class="stat-label">Watched Files</div>
+            </div>
+        `;
+
+      const errorsContainer = document.getElementById("build-errors-container");
+      if (stats.build_errors && stats.build_errors.length > 0) {
+        const errorsHtml = stats.build_errors
+          .map((error) => `<div class="error">${error}</div>`)
+          .join("");
+        errorsContainer.innerHTML = `
+                <div style="grid-column: 1 / -1; margin-top: 20px;">
+                    <h4 style="margin-bottom: 10px;">Recent Build Errors</h4>
+                    ${errorsHtml}
+                </div>
+            `;
+      } else {
+        errorsContainer.innerHTML = "";
+      }
+    } catch (e) {
+      document.getElementById(
+        "stats-container"
+      ).innerHTML = `<p class="error">Could not load stats.</p>`;
+    }
+  }
+
+  async function loadPages() {
+    try {
+      const response = await fetch("/api/pages");
+      if (!response.ok) throw new Error("Failed to fetch pages");
+      const pages = await response.json();
+
+      const pagesContainer = document.getElementById("pages-container");
+      if (pages.length === 0) {
+        pagesContainer.innerHTML = "<p>No pages generated yet.</p>";
+        return;
+      }
+
+      pagesContainer.innerHTML = pages
+        .map(
+          (page) => `
+            <div class="content-item">
+                <div class="content-info">
+                    <span class="content-title">${page.title}</span>
+                    <a href="${page.url}" target="_blank" style="font-size: 0.8em;">${page.url}</a>
+                </div>
+                <div class="content-meta" style="text-align: right; font-size: 0.8em;">
+                    <span>${page.word_count} words</span><br>
+                    <span>${page.reading_time} min read</span>
+                </div>
+            </div>
+        `
+        )
+        .join("");
+    } catch (e) {
+      document.getElementById(
+        "pages-container"
+      ).innerHTML = `<p class="error">Could not load pages.</p>`;
+    }
+  }
+
+  async function loadConfig() {
+    try {
+      const response = await fetch("/api/config");
+      if (!response.ok) throw new Error("Failed to fetch config");
+      const config = await response.json();
+      document.getElementById("config-container").textContent = JSON.stringify(
+        config,
+        null,
+        2
+      );
+    } catch (e) {
+      document.getElementById("config-container").textContent =
+        "Could not load config.";
+    }
+  }
+
+  async function rebuild() {
+    showNotification("🔄 Rebuilding site...", "info");
+    const response = await fetch("/api/rebuild", { method: "POST" });
+    if (response.ok) {
+      showNotification("✅ Site rebuilt successfully!", "success");
+      loadStats(); // Refresh stats after rebuild
+    } else {
+      showNotification("❌ Rebuild failed!", "error");
+    }
+  }
+
+  async function clearCache() {
+    showNotification("🗑️ Clearing cache...", "info");
+    const response = await fetch("/api/clear-cache", { method: "POST" });
+    if (response.ok) {
+      showNotification("✅ Cache cleared!", "success");
+    } else {
+      showNotification("❌ Failed to clear cache.", "error");
+    }
+  }
+
+  function showNotification(message, type = "info") {
+    // Using the stylish notification function from your new panel's code
+    const notification = document.createElement("div");
+    notification.className = `admin-notification ${type}`;
+    notification.textContent = message;
+
+    Object.assign(notification.style, {
+      position: "fixed",
+      top: "20px",
+      right: "20px",
+      padding: "12px 20px",
+      borderRadius: "8px",
+      color: "white",
+      fontWeight: "600",
+      zIndex: "9999",
+      transform: "translateX(110%)",
+      transition: "transform 0.5s ease-in-out",
+      boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+    });
+
+    const colors = {
+      success: "#10b981",
+      error: "#ef4444",
+      warning: "#f59e0b",
+      info: "#3b82f6",
+    };
+    notification.style.backgroundColor = colors[type];
+
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+      notification.style.transform = "translateX(0)";
+    }, 10);
+
+    setTimeout(() => {
+      notification.style.transform = "translateX(110%)";
+      setTimeout(() => {
+        document.body.removeChild(notification);
+      }, 500);
+    }, 4000);
+  }
+
+  // Initial data load
+  document.addEventListener("DOMContentLoaded", function () {
+    loadStats();
+    loadPages();
+    loadConfig();
+    showNotification("🎛️ Admin panel loaded!", "success");
+
+    // Auto-refresh stats every 5 seconds
+    setInterval(loadStats, 5000);
+  });
+</script>
+{{ end }}
