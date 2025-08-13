@@ -3,6 +3,7 @@ package template
 import (
 	"fmt"
 	"html/template"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -273,4 +274,36 @@ func (e *Engine) ListTemplates() []string {
 		names = append(names, tmpl.Name())
 	}
 	return names
+}
+
+// LoadAdminTemplate loads the admin template
+func (e *Engine) LoadAdminTemplate(templatePath string) error {
+	// Check if admin template is already loaded
+	if e.templates.Lookup("admin/single") != nil {
+		return nil
+	}
+
+	// Read admin template content
+	content, err := os.ReadFile(templatePath)
+	if err != nil {
+		return fmt.Errorf("failed to read admin template: %w", err)
+	}
+
+	// Parse and add admin template
+	_, err = e.templates.New("admin/single").Parse(string(content))
+	if err != nil {
+		return fmt.Errorf("failed to parse admin template: %w", err)
+	}
+
+	return nil
+}
+
+// RenderAdmin renders the admin panel using the admin template
+func (e *Engine) RenderAdmin(w io.Writer, data interface{}) error {
+	tmpl := e.templates.Lookup("admin/single")
+	if tmpl == nil {
+		return fmt.Errorf("admin template not found")
+	}
+
+	return tmpl.Execute(w, data)
 }

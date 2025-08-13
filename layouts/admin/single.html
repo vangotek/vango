@@ -1,5 +1,5 @@
-{{/* layouts/admin/single.html */}} {{ define "title" }}Admin Panel | {{
-.Site.Title }}{{ end }} {{ define "content" }}
+{{ define "title" }}Admin Panel | {{ .Site.Title }}{{ end }}
+{{ define "content" }}
 <div class="admin-panel">
   <div class="admin-header">
     <h1 class="admin-title">
@@ -55,226 +55,600 @@
         <h3 class="card-title">💻 Configuration</h3>
       </div>
       <div class="card-content">
-        <pre id="config-container"><p>Loading config...</p></pre>
+        <pre id="config-container">Loading config...</pre>
       </div>
     </div>
   </div>
 </div>
 
 <style>
-  /* Paste all the CSS from your "newly created admin panel" here */
+:root {
+  --admin-primary: #3b82f6;
+  --admin-primary-hover: #2563eb;
+  --admin-success: #10b981;
+  --admin-warning: #f59e0b;
+  --admin-danger: #ef4444;
+  --admin-bg: #f8fafc;
+  --admin-surface: #ffffff;
+  --admin-text: #1f2937;
+  --admin-text-light: #6b7280;
+  --admin-border: #e5e7eb;
+  --admin-radius: 12px;
+  --admin-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: var(--admin-bg);
+  color: var(--admin-text);
+  line-height: 1.6;
+  overflow-x: auto;
+}
+
+.admin-panel {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem;
+  min-height: 100vh;
+}
+
+.admin-header {
+  text-align: center;
+  margin-bottom: 3rem;
+  padding: 2rem 0;
+}
+
+.admin-title {
+  font-size: 2.75rem;
+  font-weight: 800;
+  color: var(--admin-text);
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.admin-icon {
+  font-size: 3rem;
+  filter: drop-shadow(0 4px 8px rgba(59, 130, 246, 0.3));
+}
+
+.admin-subtitle {
+  color: var(--admin-text-light);
+  font-size: 1.2rem;
+  font-weight: 500;
+}
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 2rem;
+  align-items: start;
+}
+
+.admin-card {
+  background: var(--admin-surface);
+  border-radius: var(--admin-radius);
+  box-shadow: var(--admin-shadow);
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid var(--admin-border);
+}
+
+.admin-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.card-header {
+  background: linear-gradient(135deg, var(--admin-primary) 0%, var(--admin-primary-hover) 100%);
+  color: white;
+  padding: 1.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.card-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%);
+  transform: translateX(-100%);
+  transition: transform 0.6s;
+}
+
+.admin-card:hover .card-header::before {
+  transform: translateX(100%);
+}
+
+.card-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.card-content {
+  padding: 2rem;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.stat-item {
+  text-align: center;
+  padding: 1.5rem;
+  background: var(--admin-bg);
+  border-radius: var(--admin-radius);
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+}
+
+.stat-item:hover {
+  border-color: var(--admin-primary);
+  transform: translateY(-2px);
+}
+
+.stat-value {
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: var(--admin-primary);
+  display: block;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: var(--admin-text-light);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.admin-btn {
+  background: var(--admin-primary);
+  color: white;
+  border: none;
+  padding: 14px 28px;
+  border-radius: var(--admin-radius);
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  margin: 0.5rem 0.5rem 0.5rem 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.admin-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.5s;
+}
+
+.admin-btn:hover::before {
+  left: 100%;
+}
+
+.admin-btn:hover {
+  background: var(--admin-primary-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+}
+
+.admin-btn:active {
+  transform: translateY(0);
+}
+
+.admin-btn.secondary {
+  background: var(--admin-text-light);
+}
+
+.admin-btn.secondary:hover {
+  background: var(--admin-text);
+  box-shadow: 0 8px 25px rgba(107, 114, 128, 0.3);
+}
+
+.btn-icon {
+  font-size: 1.1em;
+}
+
+.content-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 1.5rem 0;
+  border-bottom: 1px solid var(--admin-border);
+  transition: all 0.2s ease;
+}
+
+.content-item:last-child {
+  border-bottom: none;
+}
+
+.content-item:hover {
+  background: var(--admin-bg);
+  margin: 0 -2rem;
+  padding-left: 2rem;
+  padding-right: 2rem;
+  border-radius: var(--admin-radius);
+}
+
+.content-info {
+  flex: 1;
+}
+
+.content-title {
+  font-weight: 700;
+  font-size: 1.1rem;
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--admin-text);
+}
+
+.content-item a {
+  color: var(--admin-primary);
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: color 0.2s ease;
+}
+
+.content-item a:hover {
+  color: var(--admin-primary-hover);
+  text-decoration: underline;
+}
+
+.content-meta {
+  font-size: 0.85rem;
+  color: var(--admin-text-light);
+  text-align: right;
+  font-weight: 500;
+}
+
+.error {
+  background: linear-gradient(135deg, #fef2f2, #fff5f5);
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  padding: 1rem;
+  border-radius: var(--admin-radius);
+  margin: 1rem 0;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border-left: 4px solid var(--admin-danger);
+}
+
+pre {
+  background: var(--admin-bg);
+  padding: 1.5rem;
+  border-radius: var(--admin-radius);
+  overflow-x: auto;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  border: 1px solid var(--admin-border);
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+}
+
+@media (max-width: 1200px) {
+  .admin-grid {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
   .admin-panel {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 2rem;
-  }
-  /* ... etc ... */
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1rem;
-    text-align: center;
-  }
-  .stat-value {
-    font-size: 2em;
-    font-weight: bold;
-    color: var(--color-primary);
-  }
-  .stat-label {
-    color: var(--color-text-light);
-  }
-  .error {
-    background: #fff5f5;
-    border: 1px solid #feb2b2;
-    color: #e53e3e;
-    padding: 10px;
-    border-radius: 4px;
-    margin: 10px 0;
-  }
-  pre {
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    background: var(--color-surface);
     padding: 1rem;
-    border-radius: 8px;
   }
-  /* ... paste the rest of your new panel's CSS ... */
+  
+  .admin-title {
+    font-size: 2rem;
+    flex-direction: column;
+  }
+  
+  .admin-icon {
+    font-size: 2.5rem;
+  }
+  
+  .admin-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .content-item {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .content-meta {
+    text-align: left;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-btn {
+    width: 100%;
+    justify-content: center;
+    margin: 0.25rem 0;
+  }
+}
 </style>
 
 <script>
-  // NOTE: This is the functional JavaScript from your OLD panel,
-  // adapted to work with the NEW panel's HTML structure.
+class AdminPanel {
+  constructor() {
+    this.init();
+  }
 
-  async function loadStats() {
+  async init() {
     try {
-      const response = await fetch("/api/stats");
-      if (!response.ok) throw new Error("Failed to fetch stats");
+      await this.loadInitialData();
+      this.startAutoRefresh();
+      this.showNotification('🎛️ Admin panel loaded successfully!', 'success');
+    } catch (error) {
+      console.error('Failed to initialize admin panel:', error);
+      this.showNotification('❌ Failed to load admin panel', 'error');
+    }
+  }
+
+  async loadInitialData() {
+    const loadPromises = [
+      this.loadStats(),
+      this.loadPages(),
+      this.loadConfig()
+    ];
+    await Promise.allSettled(loadPromises);
+  }
+
+  async loadStats() {
+    try {
+      const response = await this.fetchWithTimeout('/api/stats');
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const stats = await response.json();
-
-      const statsContainer = document.getElementById("stats-container");
-      statsContainer.innerHTML = `
-            <div class="stat-item">
-                <div class="stat-value">${stats.requests || 0}</div>
-                <div class="stat-label">Total Requests</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-value">${stats.build_count || 0}</div>
-                <div class="stat-label">Builds</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-value">${stats.client_count || 0}</div>
-                <div class="stat-label">Connected Clients</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-value">${stats.file_watches || 0}</div>
-                <div class="stat-label">Watched Files</div>
-            </div>
-        `;
-
-      const errorsContainer = document.getElementById("build-errors-container");
-      if (stats.build_errors && stats.build_errors.length > 0) {
-        const errorsHtml = stats.build_errors
-          .map((error) => `<div class="error">${error}</div>`)
-          .join("");
-        errorsContainer.innerHTML = `
-                <div style="grid-column: 1 / -1; margin-top: 20px;">
-                    <h4 style="margin-bottom: 10px;">Recent Build Errors</h4>
-                    ${errorsHtml}
-                </div>
-            `;
-      } else {
-        errorsContainer.innerHTML = "";
-      }
-    } catch (e) {
-      document.getElementById(
-        "stats-container"
-      ).innerHTML = `<p class="error">Could not load stats.</p>`;
+      this.renderStats(stats);
+    } catch (error) {
+      console.error('Failed to load stats:', error);
+      this.renderStatsError();
     }
   }
 
-  async function loadPages() {
+  async loadPages() {
     try {
-      const response = await fetch("/api/pages");
-      if (!response.ok) throw new Error("Failed to fetch pages");
+      const response = await this.fetchWithTimeout('/api/pages');
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const pages = await response.json();
-
-      const pagesContainer = document.getElementById("pages-container");
-      if (pages.length === 0) {
-        pagesContainer.innerHTML = "<p>No pages generated yet.</p>";
-        return;
-      }
-
-      pagesContainer.innerHTML = pages
-        .map(
-          (page) => `
-            <div class="content-item">
-                <div class="content-info">
-                    <span class="content-title">${page.title}</span>
-                    <a href="${page.url}" target="_blank" style="font-size: 0.8em;">${page.url}</a>
-                </div>
-                <div class="content-meta" style="text-align: right; font-size: 0.8em;">
-                    <span>${page.word_count} words</span><br>
-                    <span>${page.reading_time} min read</span>
-                </div>
-            </div>
-        `
-        )
-        .join("");
-    } catch (e) {
-      document.getElementById(
-        "pages-container"
-      ).innerHTML = `<p class="error">Could not load pages.</p>`;
+      this.renderPages(pages);
+    } catch (error) {
+      console.error('Failed to load pages:', error);
+      this.renderPagesError();
     }
   }
 
-  async function loadConfig() {
+  async loadConfig() {
     try {
-      const response = await fetch("/api/config");
-      if (!response.ok) throw new Error("Failed to fetch config");
+      const response = await this.fetchWithTimeout('/api/config');
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const config = await response.json();
-      document.getElementById("config-container").textContent = JSON.stringify(
-        config,
-        null,
-        2
-      );
-    } catch (e) {
-      document.getElementById("config-container").textContent =
-        "Could not load config.";
+      this.renderConfig(config);
+    } catch (error) {
+      console.error('Failed to load config:', error);
+      this.renderConfigError();
     }
   }
 
-  async function rebuild() {
-    showNotification("🔄 Rebuilding site...", "info");
-    const response = await fetch("/api/rebuild", { method: "POST" });
-    if (response.ok) {
-      showNotification("✅ Site rebuilt successfully!", "success");
-      loadStats(); // Refresh stats after rebuild
+  renderStats(stats) {
+    const container = document.getElementById('stats-container');
+    const errorsContainer = document.getElementById('build-errors-container');
+    
+    container.innerHTML = `
+      <div class="stat-item">
+        <div class="stat-value">${this.formatNumber(stats.requests || 0)}</div>
+        <div class="stat-label">Total Requests</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value">${this.formatNumber(stats.build_count || 0)}</div>
+        <div class="stat-label">Builds</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value">${this.formatNumber(stats.client_count || 0)}</div>
+        <div class="stat-label">Connected Clients</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value">${this.formatNumber(stats.file_watches || 0)}</div>
+        <div class="stat-label">Watched Files</div>
+      </div>
+    `;
+
+    if (stats.build_errors && stats.build_errors.length > 0) {
+      const errorsHtml = stats.build_errors
+        .map(error => `<div class="error">${this.escapeHtml(error)}</div>`)
+        .join('');
+      errorsContainer.innerHTML = `
+        <div style="margin-top: 1.5rem;">
+          <h4 style="margin-bottom: 1rem; color: var(--admin-danger);">Recent Build Errors</h4>
+          ${errorsHtml}
+        </div>
+      `;
     } else {
-      showNotification("❌ Rebuild failed!", "error");
+      errorsContainer.innerHTML = '';
     }
   }
 
-  async function clearCache() {
-    showNotification("🗑️ Clearing cache...", "info");
-    const response = await fetch("/api/clear-cache", { method: "POST" });
-    if (response.ok) {
-      showNotification("✅ Cache cleared!", "success");
-    } else {
-      showNotification("❌ Failed to clear cache.", "error");
+  renderPages(pages) {
+    const container = document.getElementById('pages-container');
+    if (!pages || pages.length === 0) {
+      container.innerHTML = '<p style="color: var(--admin-text-light); font-style: italic;">No pages generated yet.</p>';
+      return;
+    }
+
+    container.innerHTML = pages
+      .map(page => `
+        <div class="content-item">
+          <div class="content-info">
+            <span class="content-title">${this.escapeHtml(page.title || 'Untitled')}</span>
+            <a href="${this.escapeHtml(page.url || '#')}" target="_blank">${this.escapeHtml(page.url || '#')}</a>
+          </div>
+          <div class="content-meta">
+            <div>${this.formatNumber(page.word_count || 0)} words</div>
+            <div>${page.reading_time || 0} min read</div>
+          </div>
+        </div>
+      `)
+      .join('');
+  }
+
+  renderConfig(config) {
+    const container = document.getElementById('config-container');
+    container.textContent = JSON.stringify(config, null, 2);
+  }
+
+  renderStatsError() {
+    document.getElementById('stats-container').innerHTML = 
+      '<p class="error">Failed to load server statistics.</p>';
+  }
+
+  renderPagesError() {
+    document.getElementById('pages-container').innerHTML = 
+      '<p class="error">Failed to load pages.</p>';
+  }
+
+  renderConfigError() {
+    document.getElementById('config-container').textContent = 
+      'Failed to load configuration.';
+  }
+
+  async fetchWithTimeout(url, options = {}, timeout = 10000) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      return response;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      throw error;
     }
   }
 
-  function showNotification(message, type = "info") {
-    // Using the stylish notification function from your new panel's code
-    const notification = document.createElement("div");
-    notification.className = `admin-notification ${type}`;
+  formatNumber(num) {
+    return new Intl.NumberFormat().format(num);
+  }
+
+  escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  startAutoRefresh() {
+    setInterval(() => this.loadStats(), 5000);
+  }
+
+  showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
     notification.textContent = message;
-
-    Object.assign(notification.style, {
-      position: "fixed",
-      top: "20px",
-      right: "20px",
-      padding: "12px 20px",
-      borderRadius: "8px",
-      color: "white",
-      fontWeight: "600",
-      zIndex: "9999",
-      transform: "translateX(110%)",
-      transition: "transform 0.5s ease-in-out",
-      boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-    });
+    notification.className = `admin-notification ${type}`;
 
     const colors = {
-      success: "#10b981",
-      error: "#ef4444",
-      warning: "#f59e0b",
-      info: "#3b82f6",
+      success: 'var(--admin-success)',
+      error: 'var(--admin-danger)',
+      warning: 'var(--admin-warning)',
+      info: 'var(--admin-primary)'
     };
-    notification.style.backgroundColor = colors[type];
+
+    Object.assign(notification.style, {
+      position: 'fixed',
+      top: '2rem',
+      right: '2rem',
+      padding: '1rem 1.5rem',
+      borderRadius: 'var(--admin-radius)',
+      color: 'white',
+      fontWeight: '600',
+      fontSize: '0.9rem',
+      zIndex: '10000',
+      backgroundColor: colors[type] || colors.info,
+      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+      transform: 'translateX(150%)',
+      transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+      maxWidth: '400px',
+      wordWrap: 'break-word'
+    });
 
     document.body.appendChild(notification);
-
+    requestAnimationFrame(() => notification.style.transform = 'translateX(0)');
     setTimeout(() => {
-      notification.style.transform = "translateX(0)";
-    }, 10);
-
-    setTimeout(() => {
-      notification.style.transform = "translateX(110%)";
+      notification.style.transform = 'translateX(150%)';
       setTimeout(() => {
-        document.body.removeChild(notification);
-      }, 500);
-    }, 4000);
+        if (notification.parentNode) {
+          notification.parentNode.removeChild(notification);
+        }
+      }, 400);
+    }, 5000);
   }
+}
 
-  // Initial data load
-  document.addEventListener("DOMContentLoaded", function () {
-    loadStats();
-    loadPages();
-    loadConfig();
-    showNotification("🎛️ Admin panel loaded!", "success");
+window.adminPanel = new AdminPanel();
 
-    // Auto-refresh stats every 5 seconds
-    setInterval(loadStats, 5000);
-  });
+window.rebuild = async function() {
+  adminPanel.showNotification('🔄 Rebuilding site...', 'info');
+  try {
+    const response = await adminPanel.fetchWithTimeout('/api/rebuild', { method: 'POST' });
+    if (response.ok) {
+      adminPanel.showNotification('✅ Site rebuilt successfully!', 'success');
+      adminPanel.loadStats();
+      adminPanel.loadPages();
+    } else {
+      throw new Error(`HTTP ${response.status}`);
+    }
+  } catch (error) {
+    console.error('Rebuild failed:', error);
+    adminPanel.showNotification('❌ Rebuild failed!', 'error');
+  }
+};
+
+window.clearCache = async function() {
+  adminPanel.showNotification('🗑️ Clearing cache...', 'info');
+  try {
+    const response = await adminPanel.fetchWithTimeout('/api/clear-cache', { method: 'POST' });
+    if (response.ok) {
+      adminPanel.showNotification('✅ Cache cleared successfully!', 'success');
+    } else {
+      throw new Error(`HTTP ${response.status}`);
+    }
+  } catch (error) {
+    console.error('Clear cache failed:', error);
+    adminPanel.showNotification('❌ Failed to clear cache!', 'error');
+  }
+};
 </script>
 {{ end }}

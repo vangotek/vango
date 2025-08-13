@@ -516,3 +516,20 @@ func (b *Builder) GetPageBySlug(slug string) *content.Page {
 	}
 	return nil
 }
+
+// RenderAdminPage renders the admin panel using the admin template
+func (b *Builder) RenderAdminPage(w io.Writer, data interface{}) error {
+	// Check if admin template exists
+	adminTemplatePath := filepath.Join(b.config.LayoutDir, "admin", "single.html")
+	if _, err := os.Stat(adminTemplatePath); err != nil {
+		return fmt.Errorf("admin template not found: %w", err)
+	}
+
+	// Load admin template if not already loaded
+	if err := b.engine.LoadAdminTemplate(adminTemplatePath); err != nil {
+		return fmt.Errorf("failed to load admin template: %w", err)
+	}
+
+	// Render admin template
+	return b.engine.RenderAdmin(w, data)
+}
